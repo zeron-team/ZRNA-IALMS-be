@@ -82,3 +82,18 @@ async def admin_required(current_user: PydanticUser = Depends(get_current_active
             detail="Acceso denegado: se requiere rol de administrador."
         )
     return current_user
+
+async def is_owner_or_instructor(
+    user_id: int,
+    current_user: PydanticUser = Depends(get_current_active_user)
+):
+    """
+    Verifica si el usuario actual es el dueño del perfil que intenta editar
+    o si es un instructor/admin.
+    """
+    if current_user.id == user_id or current_user.role.name in ['instructor', 'admin']:
+        return current_user
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="No tienes permiso para realizar esta acción."
+    )

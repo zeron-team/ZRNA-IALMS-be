@@ -2,8 +2,26 @@
 
 from pydantic import BaseModel
 from typing import List, Optional
-from .category import Category as CategorySchema
 
+class CourseBaseForCategory(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    level: str
+    status: str
+    class Config:
+        from_attributes = True
+
+# --- CATEGORY ---
+class Category(BaseModel):
+    id: int
+    name: str
+    courses: List[CourseBaseForCategory] = []
+    class Config:
+        from_attributes = True
+
+
+# --- MODULE ---
 class Module(BaseModel):
     id: int
     title: str
@@ -13,16 +31,30 @@ class Module(BaseModel):
     course_id: int
     content_data: Optional[str] = None
     is_locked: bool = False
-
     class Config:
         from_attributes = True
+
+# --- COURSE ---
+class Course(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    instructor_id: int
+    level: str
+    category: Category
+    total_stars: int = 0
+    earned_stars: int = 0
+    class Config:
+        from_attributes = True
+
+class CourseWithProgress(Course):
+    completion_percentage: int = 0
 
 class CourseDetail(BaseModel):
     id: int
     title: str
     description: Optional[str] = None
     modules: List[Module] = []
-
     class Config:
         from_attributes = True
 
@@ -32,21 +64,3 @@ class CourseCreate(BaseModel):
     category_id: int
     level: str
 
-class Course(BaseModel):
-    id: int
-    title: str
-    description: Optional[str] = None
-    instructor_id: int
-    level: str
-    category: CategorySchema
-    total_stars: int = 3
-    earned_stars: int = 0
-    #completion_percentage: int = 0
-
-    class Config:
-        from_attributes = True
-
-class CourseWithProgress(Course):
-    completion_percentage: int = 0
-    total_stars: int = 3  # <-- Campo añadido
-    earned_stars: int = 0  # <-- Campo añadido

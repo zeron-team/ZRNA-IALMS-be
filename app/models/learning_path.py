@@ -2,8 +2,8 @@
 
 from pydantic import BaseModel
 from typing import List, Optional
-from .course import Course as CourseSchema
-from .category import Category as CategorySchema
+# CORRECCIÓN: Importa 'Course' y 'Category' desde 'app.models.course'
+from .course import Course as CourseSchema, Category as CategorySchema
 
 class LearningPathBase(BaseModel):
     title: str

@@ -1,7 +1,10 @@
+# backend/app/repositories/user_repo.py
+
 from sqlalchemy.orm import Session, joinedload
 from app import db_models
 from app.models import user as user_schemas
 from app.core.hashing import get_password_hash
+import secrets
 
 
 def get_user_by_id(db: Session, user_id: int):
@@ -21,20 +24,32 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 
 
 def create_user(db: Session, user: user_schemas.UserCreate):
-    """Crea un nuevo usuario y su perfil vacío asociado."""
     hashed_password = get_password_hash(user.password)
+    verification_token = secrets.token_urlsafe(32)
+
     db_user = db_models.User(
         username=user.username,
         email=user.email,
         hashed_password=hashed_password,
-        role_id=user.role_id
+        role_id=user.role_id,
+        verification_token=verification_token,
+        is_active=False  # El usuario se crea como inactivo
     )
-    # Crea un perfil vacío al mismo tiempo
     db_user.profile = db_models.UserProfile()
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def activate_user_by_token(db: Session, token: str):
+    user = db.query(db_models.User).filter(db_models.User.verification_token == token).first()
+    if user:
+        user.is_active = True
+        user.verification_token = None  # El token se usa solo una vez
+        db.commit()
+        return user
+    return None
 
 
 def update_user(db: Session, user_id: int, user_update: user_schemas.UserUpdate):
@@ -67,3 +82,8 @@ def delete_user(db: Session, user_id: int) -> bool:
     db.delete(db_user)
     db.commit()
     return True
+
+
+def get_user_by_email(db: Session, email: str):
+    """Busca un usuario por su dirección de email."""
+    return db.query(db_models.User).filter(db_models.User.email == email).first()

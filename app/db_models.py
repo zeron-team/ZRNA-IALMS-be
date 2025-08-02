@@ -1,8 +1,35 @@
 # backend/app/db_models.py
 
-from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, TIMESTAMP, Boolean, Float
+from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, TIMESTAMP, Boolean, Float, Date
 from sqlalchemy.orm import relationship
 from .database import Base
+
+
+# --- Modelos Principales ---
+
+from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, TIMESTAMP, Boolean, Float, Date
+from sqlalchemy.orm import relationship
+from .database import Base
+
+
+# --- Modelos de Asociación (Tablas Intermedias) ---
+
+class CourseEnrollment(Base):
+    __tablename__ = 'course_enrollments'
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    course_id = Column(Integer, ForeignKey('courses.id'), primary_key=True)
+    enrollment_date = Column(TIMESTAMP, server_default='CURRENT_TIMESTAMP')
+    user = relationship("User", back_populates="enrollments")
+    course = relationship("Course", back_populates="enrollments")
+
+
+class LearningPathCourse(Base):
+    __tablename__ = 'learning_path_courses'
+    path_id = Column(Integer, ForeignKey('learning_paths.id'), primary_key=True)
+    course_id = Column(Integer, ForeignKey('courses.id'), primary_key=True)
+    step = Column(Integer, nullable=False)
+    path = relationship("LearningPath", back_populates="courses")
+    course = relationship("Course")
 
 
 # --- Modelos Principales ---
@@ -14,6 +41,8 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
+    is_active = Column(Boolean, default=False, nullable=False)
+    verification_token = Column(String(255), unique=True, index=True, nullable=True)
 
     # Relaciones
     role = relationship("Role")
@@ -40,7 +69,12 @@ class UserProfile(Base):
     first_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)
     bio = Column(Text, nullable=True)
-
+    document_type = Column(String(50), nullable=True)
+    document_country = Column(String(100), nullable=True)
+    document_number = Column(String(50), nullable=True)
+    birth_date = Column(Date, nullable=True)
+    phone_country_code = Column(String(10), nullable=True)
+    phone_number = Column(String(50), nullable=True)
     user = relationship("User", back_populates="profile")
 
 
@@ -48,7 +82,6 @@ class Category(Base):
     __tablename__ = "categories"
     id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True, nullable=False)
-
     courses = relationship("Course", back_populates="category")
 
 
@@ -66,8 +99,7 @@ class Course(Base):
     instructor = relationship("User", back_populates="courses_taught")
     category = relationship("Category", back_populates="courses")
     modules = relationship("Module", back_populates="course", cascade="all, delete-orphan")
-    enrollments = relationship("CourseEnrollment", back_populates="course",
-                               cascade="all, delete-orphan")  # <-- ÚNICA DEFINICIÓN
+    enrollments = relationship("CourseEnrollment", back_populates="course", cascade="all, delete-orphan")
 
     @property
     def enrolled_students(self):
@@ -86,6 +118,7 @@ class Module(Base):
     # Relaciones
     course = relationship("Course", back_populates="modules")
     progress = relationship("StudentProgress", back_populates="module", cascade="all, delete-orphan")
+    questions = relationship("Question", back_populates="module", cascade="all, delete-orphan")
 
 
 class StudentProgress(Base):
@@ -104,39 +137,18 @@ class LearningPath(Base):
     id = Column(Integer, primary_key=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-
-    # CORRECCIÓN: Renombrado de 'courses_association' a 'courses'
     courses = relationship("LearningPathCourse", back_populates="path", cascade="all, delete-orphan")
 
 
-# --- Modelos de Asociación (Tablas Intermedias) ---
-
-class CourseEnrollment(Base):
-    __tablename__ = 'course_enrollments'
-    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
-    course_id = Column(Integer, ForeignKey('courses.id'), primary_key=True)
-    enrollment_date = Column(TIMESTAMP, server_default='CURRENT_TIMESTAMP')
-    user = relationship("User", back_populates="enrollments")
-    course = relationship("Course", back_populates="enrollments")
-
-class LearningPathCourse(Base):
-    __tablename__ = 'learning_path_courses'
-    path_id = Column(Integer, ForeignKey('learning_paths.id'), primary_key=True)
-    course_id = Column(Integer, ForeignKey('courses.id'), primary_key=True)
-    step = Column(Integer, nullable=False)
-
-    # CORRECCIÓN: Actualizado el 'back_populates' para que coincida
-    path = relationship("LearningPath", back_populates="courses")
-    course = relationship("Course")
-
+# --- Modelos de Quiz ---
 class Question(Base):
     __tablename__ = "questions"
     id = Column(Integer, primary_key=True, index=True)
     module_id = Column(Integer, ForeignKey("modules.id"), nullable=False)
     question_text = Column(Text, nullable=False)
-
     options = relationship("Option", back_populates="question", cascade="all, delete-orphan")
-    module = relationship("Module")
+    module = relationship("Module", back_populates="questions")
+
 
 class Option(Base):
     __tablename__ = "options"
@@ -144,8 +156,8 @@ class Option(Base):
     question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
     option_text = Column(Text, nullable=False)
     is_correct = Column(Boolean, default=False, nullable=False)
-
     question = relationship("Question", back_populates="options")
+
 
 class QuizAttempt(Base):
     __tablename__ = "quiz_attempts"
@@ -155,6 +167,5 @@ class QuizAttempt(Base):
     score = Column(Float, nullable=False)
     passed = Column(Boolean, nullable=False)
     submitted_at = Column(TIMESTAMP, server_default='CURRENT_TIMESTAMP')
-
     user = relationship("User")
     module = relationship("Module")

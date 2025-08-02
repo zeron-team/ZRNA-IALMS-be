@@ -13,13 +13,9 @@ from app.models.user import User as PydanticUser, UserCreate
 
 # --- Repositorio y Dependencias ---
 from app.repositories import user_repo
-from app.dependencies import get_db
-from app.security import get_current_active_user, instructor_required
-from app.services.course_service import CourseService
-
-# --- Dependencias y Seguridad ---
 from app.dependencies import get_db, get_course_service
-from app.security import get_current_active_user, instructor_required
+from app.security import get_current_active_user, instructor_required, is_owner_or_instructor
+from app.services.course_service import CourseService
 
 router = APIRouter(
     prefix="/users",
@@ -27,12 +23,6 @@ router = APIRouter(
 )
 
 # --- Ruta de Registro / Creación de Usuario ---
-@router.post("/", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
-def create_new_user(user: UserCreate, db: Session = Depends(get_db)):
-    """Crea un nuevo usuario."""
-    if user_repo.get_user_by_username(db, username=user.username):
-        raise HTTPException(status_code=400, detail="Username already registered")
-    return user_repo.create_user(db=db, user=user)
 
 # --- Ruta para obtener el usuario logueado ---
 @router.get("/me", response_model=UserSchema)
@@ -67,12 +57,19 @@ def update_existing_user(
     user_id: int, 
     user_update: UserUpdate, 
     db: Session = Depends(get_db),
-    current_user: UserSchema = Depends(instructor_required)
+    current_user: UserSchema = Depends(is_owner_or_instructor)
 ):
-    """Actualiza la información y/o rol de un usuario."""
+    """
+    Actualiza la información de un usuario.
+    Un usuario puede editar su propio perfil. Un instructor/admin puede editar cualquier perfil.
+    """
+    # Lógica de seguridad para evitar que un usuario normal cambie su rol
+    if 'role_id' in user_update.model_dump(exclude_unset=True) and current_user.role.name == 'student':
+        raise HTTPException(status_code=403, detail="No puedes cambiar tu propio rol.")
+
     updated_user = user_repo.update_user(db, user_id, user_update)
     if not updated_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return updated_user
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

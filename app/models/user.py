@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from datetime import date
+
 
 
 # --- Modelo base del Usuario ---
@@ -42,6 +44,13 @@ class UserProfileBase(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     bio: Optional[str] = None
+    # --- CAMPOS NUEVOS ---
+    document_type: Optional[str] = None
+    document_country: Optional[str] = None
+    document_number: Optional[str] = None
+    birth_date: Optional[date] = None # Necesitarás: from datetime import date
+    phone_country_code: Optional[str] = None
+    phone_number: Optional[str] = None
 
 class UserProfile(UserProfileBase):
     class Config:
