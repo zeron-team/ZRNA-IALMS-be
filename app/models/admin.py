@@ -8,6 +8,18 @@ class DashboardStats(BaseModel):
     total_users: int
     total_courses: int
     total_enrollments: int
+    total_categories: int
+
+class CourseEnrollmentStats(BaseModel):
+    id: int
+    title: str
+    enrollment_count: int
+
+class AdminDashboardData(BaseModel):
+    total_users: int
+    total_courses: int
+    total_enrollments: int
+    total_categories: int
 
 class CourseWithEnrollments(BaseModel):
     id: int

@@ -53,15 +53,19 @@ async def read_course_detail(
     }
 
     modules_with_status = []
-    previous_module_completed = True  # El primer módulo siempre está desbloqueado
+    previous_module_completed = True
 
     for module in sorted(db_course.modules, key=lambda m: m.order_index):
         status = user_progress_map.get(module.id, 'not_started')
 
-        # El módulo actual está bloqueado si el anterior no fue completado
         is_locked = not previous_module_completed
 
-        # Prepara la "llave" para la siguiente iteración del bucle
+        # --- ESTA ES LA CORRECCIÓN ---
+        # Si el usuario es admin o instructor, nunca se bloquea nada.
+        if current_user.role.name in ['instructor', 'admin']:
+            is_locked = False
+        # -------------------------------
+
         if status == 'completed':
             previous_module_completed = True
         else:
