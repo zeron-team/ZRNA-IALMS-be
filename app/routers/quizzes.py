@@ -4,11 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
+from app.services import ai_service
 from app.dependencies import get_db
-from app.repositories import quiz_repo, progress_repo
+from app.repositories import quiz_repo, progress_repo, module_repo, course_repo
 from app.security import get_current_active_user
 from app.models.user import User as UserSchema
 from app.models.quiz import QuizSchema, QuizSubmission, QuizResultDetailed, QuizStatus
+from app.logic import course_logic
 
 router = APIRouter(
     prefix="/quizzes",
@@ -32,21 +34,16 @@ def read_quiz_for_module(module_id: int, db: Session = Depends(get_db)):
 
 @router.post("/module/{module_id}/submit", response_model=QuizResultDetailed)
 def submit_quiz(
-    module_id: int,
-    submission: QuizSubmission,
-    db: Session = Depends(get_db),
-    current_user: UserSchema = Depends(get_current_active_user)
+        module_id: int,
+        submission: QuizSubmission,
+        db: Session = Depends(get_db),
+        current_user: UserSchema = Depends(get_current_active_user)
 ):
-    """
-    Recibe las respuestas, las califica y actualiza el progreso si se aprueba.
-    """
-    # --- LÓGICA DE LÍMITE DE INTENTOS ---
     attempts_count = quiz_repo.count_quiz_attempts(db, user_id=current_user.id, module_id=module_id)
     if attempts_count >= 3:
         raise HTTPException(status_code=403, detail="Has excedido el número máximo de intentos.")
-    # -----------------------------------
-    correct_answers = quiz_repo.get_correct_answers_for_module(db, module_id)
 
+    correct_answers = quiz_repo.get_correct_answers_for_module(db, module_id)
     score_count = 0
     detailed_results = []
     for q_id, user_opt_id in submission.answers.items():
@@ -68,14 +65,21 @@ def submit_quiz(
     if passed:
         progress_repo.mark_module_as_completed(db, user_id=current_user.id, module_id=module_id)
 
+    # --- LÓGICA AÑADIDA Y CORREGIDA ---
+    motivational_phrase = ai_service.generate_motivational_phrase(final_score, passed)
+
+    module = module_repo.get_module_by_id(db, module_id)
+    course = course_repo.get_course_by_id(db, module.course_id)
+    total_stars, earned_stars = course_logic.calculate_star_rating(db, course, current_user.id)
+
     return {
         "score": final_score,
         "passed": passed,
         "detailed_results": detailed_results,
-        "motivational_phrase": motivational_phrase,  # <-- Nuevo
-        "course_total_stars": total_stars,  # <-- Nuevo
-        "course_earned_stars": earned_stars,  # <-- Nuevo
-        "attempts_remaining": 2
+        "motivational_phrase": motivational_phrase,
+        "course_total_stars": total_stars,
+        "course_earned_stars": earned_stars,
+        "attempts_remaining": 2 - attempts_count
     }
 
 @router.get("/module/{module_id}/status", response_model=QuizStatus)

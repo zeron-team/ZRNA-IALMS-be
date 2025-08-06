@@ -1,3 +1,5 @@
+# backend/app/security.py
+
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -7,9 +9,10 @@ from fastapi.security import OAuth2PasswordBearer
 
 from app.core.hashing import verify_password
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
-from app.models.user import User as PydanticUser
-from app.repositories import user_repo
 from app.dependencies import get_db
+# --- LÍNEA AÑADIDA ---
+from app.repositories import user_repo, course_repo, module_repo
+from app.models.user import User as PydanticUser
 
 # --- Configuración ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
@@ -97,3 +100,38 @@ async def is_owner_or_instructor(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="No tienes permiso para realizar esta acción."
     )
+
+async def can_edit_course(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: PydanticUser = Depends(get_current_active_user)
+):
+    """Verifica si el usuario actual puede editar un curso (por rol o por ser creador)."""
+    course = course_repo.get_course_by_id(db, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+
+    is_admin_or_instructor = current_user.role.name in ['admin', 'instructor']
+    is_creator = course.creator_id == current_user.id
+
+    if not is_admin_or_instructor and not is_creator:
+        raise HTTPException(status_code=403, detail="No tienes permiso para editar este curso.")
+    return current_user
+
+async def can_edit_module(
+    module_id: int,
+    db: Session = Depends(get_db),
+    current_user: PydanticUser = Depends(get_current_active_user)
+):
+    """Verifica si el usuario actual puede editar un módulo."""
+    module = module_repo.get_module_by_id(db, module_id)
+    if not module:
+        raise HTTPException(status_code=404, detail="Módulo no encontrado")
+
+    course = module.course
+    is_admin_or_instructor = current_user.role.name in ['admin', 'instructor']
+    is_creator = course.creator_id == current_user.id
+
+    if not is_admin_or_instructor and not is_creator:
+        raise HTTPException(status_code=403, detail="No tienes permiso para editar este módulo.")
+    return current_user

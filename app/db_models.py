@@ -5,13 +5,6 @@ from sqlalchemy.orm import relationship
 from .database import Base
 
 
-# --- Modelos Principales ---
-
-from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, TIMESTAMP, Boolean, Float, Date
-from sqlalchemy.orm import relationship
-from .database import Base
-
-
 # --- Modelos de Asociación (Tablas Intermedias) ---
 
 class CourseEnrollment(Base):
@@ -21,7 +14,6 @@ class CourseEnrollment(Base):
     enrollment_date = Column(TIMESTAMP, server_default='CURRENT_TIMESTAMP')
     user = relationship("User", back_populates="enrollments")
     course = relationship("Course", back_populates="enrollments")
-
 
 class LearningPathCourse(Base):
     __tablename__ = 'learning_path_courses'
@@ -44,23 +36,24 @@ class User(Base):
     is_active = Column(Boolean, default=False, nullable=False)
     verification_token = Column(String(255), unique=True, index=True, nullable=True)
 
-    # Relaciones
-    role = relationship("Role")
+    # --- RELACIONES CORREGIDAS ---
+    role = relationship("Role", back_populates="users")
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    courses_taught = relationship("Course", back_populates="instructor")
-    progress = relationship("StudentProgress", back_populates="user", cascade="all, delete-orphan")
+    courses_taught = relationship("Course", back_populates="instructor", foreign_keys="[Course.instructor_id]")
+    courses_created = relationship("Course", back_populates="creator", foreign_keys="[Course.creator_id]")
     enrollments = relationship("CourseEnrollment", back_populates="user", cascade="all, delete-orphan")
+    progress = relationship("StudentProgress", back_populates="user", cascade="all, delete-orphan")
 
     @property
     def enrolled_courses(self):
         return [enrollment.course for enrollment in self.enrollments]
-
 
 class Role(Base):
     __tablename__ = "roles"
     id = Column(Integer, primary_key=True)
     name = Column(String(50), unique=True, nullable=False)
     description = Column(Text, nullable=True)
+    users = relationship("User", back_populates="role")  # <-- Relación añadida
 
 
 class UserProfile(Base):
@@ -90,21 +83,25 @@ class Course(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    instructor_id = Column(Integer, ForeignKey("users.id"))
+    instructor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     category_id = Column(Integer, ForeignKey("categories.id"))
     level = Column(Enum('basico', 'intermedio', 'avanzado'), nullable=False)
     status = Column(Enum('published', 'draft'), nullable=False, server_default='published')
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    visibility = Column(Enum('public', 'private'), nullable=False, server_default='private')
 
-    # Relaciones
-    instructor = relationship("User", back_populates="courses_taught")
+    instructor = relationship("User", back_populates="courses_taught", foreign_keys=[instructor_id])
+    creator = relationship("User", back_populates="courses_created", foreign_keys=[creator_id])
     category = relationship("Category", back_populates="courses")
     modules = relationship("Module", back_populates="course", cascade="all, delete-orphan")
     enrollments = relationship("CourseEnrollment", back_populates="course", cascade="all, delete-orphan")
 
+
+
+
     @property
     def enrolled_students(self):
         return [enrollment.user for enrollment in self.enrollments]
-
 
 class Module(Base):
     __tablename__ = "modules"

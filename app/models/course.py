@@ -39,11 +39,12 @@ class Course(BaseModel):
     id: int
     title: str
     description: Optional[str] = None
-    instructor_id: int
+    instructor_id: Optional[int] = None
     level: str
-    category: Category
+    category: Category # <-- Usa directamente la clase 'Category'
     total_stars: int = 0
     earned_stars: int = 0
+    creator_id: Optional[int] = None  # <-- Permite que sea nulo
     class Config:
         from_attributes = True
 
@@ -54,6 +55,7 @@ class CourseDetail(BaseModel):
     id: int
     title: str
     description: Optional[str] = None
+    creator_id: Optional[int] = None  # <-- Añade el creator_id aquí
     modules: List[Module] = []
     class Config:
         from_attributes = True

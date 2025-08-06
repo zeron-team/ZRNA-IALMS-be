@@ -50,7 +50,7 @@ def generate_curriculum_from_ai(course_title: str, course_description: str) -> d
 
     Tu respuesta DEBE ser un objeto JSON válido y nada más, sin texto introductorio ni explicaciones adicionales. El objeto debe tener una clave "modules" que sea un array de objetos.
     Cada objeto debe tener las claves: "title" (string), "description" (string), y "order_index" (integer, comenzando en 1).
-    Genera entre 5 y 8 módulos.
+    Genera entre 5 y 10 módulos.
     """
 
     try:
@@ -82,7 +82,7 @@ def generate_quiz_from_ai(module_title: str, module_description: str) -> dict:
         - "option_text" (string): El texto de la opción.
         - "is_correct" (boolean): true para la única opción correcta, false para las otras 3.
 
-    Genera 3 preguntas de opción múltiple.
+    Genera 5 preguntas de opción múltiple.
     """
     try:
         response = model.generate_content(prompt)
@@ -126,7 +126,7 @@ def generate_course_summary_from_ai(title: str, description: str) -> str:
 
     Tu respuesta DEBE ser texto en formato Markdown. Estructura el resumen así:
     - Un encabezado "### ¿Qué aprenderás en este curso?".
-    - Una lista con viñetas de 3 a 5 objetivos de aprendizaje clave que el alumno logrará.
+    - Una lista con viñetas de 5 a 10 objetivos de aprendizaje clave que el alumno logrará.
     - Un encabezado "### ¿A quién está dirigido?".
     - Un párrafo corto describiendo el perfil del estudiante ideal.
     """
@@ -147,7 +147,7 @@ def suggest_missing_courses_for_path(path_title: str, existing_courses: List[str
     La ruta de conocimiento es: "{path_title}".
     Los cursos que ya existen en esta ruta son: {courses_list}.
 
-    Analiza la ruta y los cursos existentes. Sugiere una lista de 2 a 4 títulos de cursos adicionales que complementarían y completarían esta ruta de conocimiento de forma lógica.
+    Analiza la ruta y los cursos existentes. Sugiere una lista de 3 a 5 títulos de cursos adicionales que complementarían y completarían esta ruta de conocimiento de forma lógica.
 
     Tu respuesta DEBE ser un objeto JSON válido y nada más. El objeto debe tener una clave "suggested_courses" que sea un array de strings, donde cada string es el título de un curso sugerido.
     Ejemplo de formato de respuesta:

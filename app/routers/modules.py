@@ -12,7 +12,7 @@ from app.models.user import User as UserSchema
 from app.dependencies import get_db, get_module_service
 from app.repositories import module_repo, enrollment_repo
 from app.services.module_service import ModuleService
-from app.security import get_current_active_user, instructor_required
+from app.security import instructor_required, get_current_active_user, can_edit_module # <-- Importa la nueva regla
 
 router = APIRouter(
     prefix="/modules",
@@ -29,13 +29,17 @@ def read_module(
     if db_module is None:
         raise HTTPException(status_code=404, detail="Módulo no encontrado")
 
-    # --- LÓGICA DE VALIDACIÓN CORREGIDA ---
-    is_enrolled = enrollment_repo.is_enrolled(db, user_id=current_user.id, course_id=db_module.course_id)
-    is_instructor_or_admin = current_user.role.name in ['instructor', 'admin']
+    # Obtenemos el curso al que pertenece el módulo
+    db_course = db_module.course
 
-    # Permite el acceso si el usuario está inscrito O si es un instructor/admin
-    if not is_enrolled and not is_instructor_or_admin:
-        raise HTTPException(status_code=403, detail="Debes inscribirte en el curso para ver este módulo.")
+    # --- LÓGICA DE PERMISOS CORREGIDA ---
+    is_enrolled = enrollment_repo.is_enrolled(db, user_id=current_user.id, course_id=db_course.id)
+    is_instructor_or_admin = current_user.role.name in ['instructor', 'admin']
+    is_creator = db_course.creator_id == current_user.id
+
+    # Permite el acceso si se cumple CUALQUIERA de estas condiciones
+    if not is_enrolled and not is_instructor_or_admin and not is_creator:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver este módulo.")
     # ------------------------------------------
 
     return db_module
@@ -44,12 +48,10 @@ def read_module(
 async def generate_content_for_module(
     module_id: int,
     service: ModuleService = Depends(get_module_service),
-    current_user: UserSchema = Depends(instructor_required)
+    # Reemplaza 'instructor_required' con la nueva dependencia
+    current_user: UserSchema = Depends(can_edit_module)
 ):
-    """
-    Genera y guarda el contenido detallado para un módulo usando IA.
-    Requiere rol de instructor o admin.
-    """
+    """Genera y guarda el contenido detallado para un módulo usando IA."""
     updated_module = await service.generate_and_save_content(module_id)
     if not updated_module:
         raise HTTPException(status_code=500, detail="Failed to generate content")
