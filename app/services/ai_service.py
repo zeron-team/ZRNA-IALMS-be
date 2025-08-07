@@ -218,3 +218,5 @@ def generate_motivational_phrase(score: int, passed: bool) -> str:
         return response.text.strip()
     except Exception:
         return "¡Sigue esforzándote!"
+
+

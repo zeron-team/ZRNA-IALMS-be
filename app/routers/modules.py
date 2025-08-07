@@ -29,7 +29,6 @@ def read_module(
     if db_module is None:
         raise HTTPException(status_code=404, detail="Módulo no encontrado")
 
-    # Obtenemos el curso al que pertenece el módulo
     db_course = db_module.course
 
     # --- LÓGICA DE PERMISOS CORREGIDA ---

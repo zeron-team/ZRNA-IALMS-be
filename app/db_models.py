@@ -166,3 +166,40 @@ class QuizAttempt(Base):
     submitted_at = Column(TIMESTAMP, server_default='CURRENT_TIMESTAMP')
     user = relationship("User")
     module = relationship("Module")
+
+
+class Room(Base):
+    __tablename__ = "rooms"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    instructor_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    join_code = Column(String(10), unique=True)
+
+    instructor = relationship("User")
+    members = relationship("User", secondary="room_members")
+    courses = relationship("Course", secondary="room_courses")
+
+
+class RoomMember(Base):
+    __tablename__ = "room_members"
+    room_id = Column(Integer, ForeignKey("rooms.id"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+
+
+class RoomCourse(Base):
+    __tablename__ = "room_courses"
+    room_id = Column(Integer, ForeignKey("rooms.id"), primary_key=True)
+    course_id = Column(Integer, ForeignKey("courses.id"), primary_key=True)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False)
+    link_url = Column(String(255), nullable=True)
+    created_at = Column(TIMESTAMP, server_default='CURRENT_TIMESTAMP')
+
+    user = relationship("User")
