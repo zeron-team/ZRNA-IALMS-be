@@ -24,17 +24,9 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[Course])
-def read_courses(
-        db: Session = Depends(get_db),
-        current_user: UserSchema = Depends(get_current_active_user)
-):
-    """Obtiene todos los cursos publicados y calcula las estrellas para el usuario actual."""
-    all_courses = course_repo.get_published_courses(db)
-    for course in all_courses:
-        course.total_stars, course.earned_stars = course_logic.calculate_star_rating(
-            db, course, current_user.id
-        )
-    return all_courses
+def read_courses(db: Session = Depends(get_db)): # <-- Se elimina la dependencia de 'current_user'
+    """Obtiene todos los cursos publicados para la galería PÚBLICA."""
+    return course_repo.get_published_courses(db)
 
 
 @router.get("/{course_id}", response_model=CourseDetail)

@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[CategorySchema])
-def read_all_categories(db: Session = Depends(get_db)):
+def read_all_categories(db: Session = Depends(get_db)): # <-- Se elimina la dependencia de 'current_user'
     """Obtiene una lista de todas las categorías de cursos."""
     return category_repo.get_categories(db)
 

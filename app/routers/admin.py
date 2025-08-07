@@ -39,3 +39,8 @@ def get_detailed_enrollments(db: Session = Depends(get_db)):
             )
         )
     return stats
+
+@router.get("/rooms-summary")
+def get_all_rooms_summary_endpoint(db: Session = Depends(get_db)):
+    """Obtiene un resumen de todas las salas de la plataforma."""
+    return reporting_repo.get_all_rooms_summary(db)

@@ -119,3 +119,30 @@ def get_detailed_student_progress(db: Session, instructor_id: int):
         report.append(student_data)
 
     return report
+
+
+def get_all_rooms_summary(db: Session):
+    """
+    Obtiene un resumen de todas las salas, incluyendo su instructor,
+    cantidad de cursos y cantidad de miembros.
+    """
+    rooms = db.query(db_models.Room).options(
+        joinedload(db_models.Room.instructor).joinedload(db_models.User.profile)
+    ).all()
+
+    summary = []
+    for room in rooms:
+        # --- CORRECCIÓN: Maneja el caso de que el perfil o instructor sea None ---
+        instructor_name = "Sin Asignar"
+        if room.instructor:
+            instructor_name = (
+                room.instructor.profile.first_name if room.instructor.profile else room.instructor.username)
+
+        summary.append({
+            "id": room.id,
+            "name": room.name,
+            "instructor_name": instructor_name,
+            "course_count": len(room.courses),
+            "member_count": len(room.members)
+        })
+    return summary
