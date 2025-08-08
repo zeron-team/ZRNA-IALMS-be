@@ -146,3 +146,45 @@ def get_all_rooms_summary(db: Session):
             "member_count": len(room.members)
         })
     return summary
+
+
+def get_courses_with_enrollments_and_progress(db: Session):
+    """
+    Obtiene todos los cursos, cargando los estudiantes inscritos y calculando
+    el progreso de cada uno en ese curso.
+    """
+    courses = db.query(db_models.Course).options(
+        joinedload(db_models.Course.enrollments).joinedload(db_models.CourseEnrollment.user).joinedload(
+            db_models.User.profile)
+    ).all()
+
+    report = []
+    for course in courses:
+        students_data = []
+        # Asegura que enrollments exista antes de iterar
+        if course.enrollments:
+            for enrollment in course.enrollments:
+                student = enrollment.user
+                if not student: continue  # Salta si no hay usuario
+
+                total_modules = len(course.modules)
+                completed_modules = db.query(db_models.StudentProgress).filter(
+                    db_models.StudentProgress.user_id == student.id,
+                    db_models.StudentProgress.module_id.in_([m.id for m in course.modules]),
+                    db_models.StudentProgress.status == 'completed'
+                ).count()
+                progress = round((completed_modules / total_modules) * 100) if total_modules > 0 else 0
+
+                students_data.append({
+                    "id": student.id,
+                    "name": student.profile.first_name if student.profile else student.username,
+                    "email": student.email,
+                    "progress": progress
+                })
+
+        report.append({
+            "id": course.id,
+            "title": course.title,
+            "enrolled_students": students_data  # Siempre devuelve una lista
+        })
+    return report

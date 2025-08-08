@@ -44,3 +44,8 @@ def get_detailed_enrollments(db: Session = Depends(get_db)):
 def get_all_rooms_summary_endpoint(db: Session = Depends(get_db)):
     """Obtiene un resumen de todas las salas de la plataforma."""
     return reporting_repo.get_all_rooms_summary(db)
+
+@router.get("/enrollments-detailed")
+def get_enrollments_with_progress(db: Session = Depends(get_db)):
+    """Obtiene los cursos con una lista detallada de sus alumnos y el progreso de cada uno."""
+    return reporting_repo.get_courses_with_enrollments_and_progress(db)
