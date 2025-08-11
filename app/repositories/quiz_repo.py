@@ -16,6 +16,8 @@ def create_quiz_for_module(db: Session, module_id: int, questions_data: list):
         db.flush()
 
         options = q_data.get('options', [])
+        if not options: continue
+
         for o_data in options:
             db_option = db_models.Option(
                 question_id=db_question.id,

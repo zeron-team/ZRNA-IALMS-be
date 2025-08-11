@@ -24,35 +24,42 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[Course])
-def read_courses(db: Session = Depends(get_db)): # <-- Se elimina la dependencia de 'current_user'
-    """Obtiene todos los cursos publicados para la galería PÚBLICA."""
+def read_courses(db: Session = Depends(get_db)):
+    """
+    Obtiene todos los cursos publicados. Esta es una ruta pública
+    y no debe depender de un usuario logueado.
+    """
+    # Se elimina la lógica de cálculo de estrellas que requiere un usuario
     return course_repo.get_published_courses(db)
 
 
 @router.get("/{course_id}", response_model=CourseDetail)
 def read_course_detail(
-    course_id: int,
-    db: Session = Depends(get_db),
-    current_user: UserSchema = Depends(get_current_active_user)
+        course_id: int,
+        db: Session = Depends(get_db),
+        current_user: UserSchema = Depends(get_current_active_user)
 ):
     db_course = course_repo.get_course_by_id(db, course_id)
     if not db_course:
         raise HTTPException(status_code=404, detail="Curso no encontrado.")
 
-    # ... (lógica de permisos para borradores)
-
     user_progress_map = {p.module_id: p.status for p in
                          progress_repo.get_progress_for_course(db, current_user.id, course_id)}
 
     modules_with_status = []
-    previous_module_completed = True
+    previous_module_completed = True  # El primer módulo siempre está desbloqueado
+
     for module in sorted(db_course.modules, key=lambda m: m.order_index):
         status = user_progress_map.get(module.id, 'not_started')
+
+        # --- LÓGICA DE BLOQUEO ESTRICTA ---
         is_locked = not previous_module_completed
 
+        # Si el usuario es admin o instructor, nunca se bloquea nada.
         if current_user.role.name in ['instructor', 'admin']:
             is_locked = False
 
+        # Actualiza la bandera para la siguiente iteración
         if status == 'completed':
             previous_module_completed = True
         else:
@@ -63,19 +70,20 @@ def read_course_detail(
         module_data.is_locked = is_locked
         modules_with_status.append(module_data)
 
-    # --- CORRECCIÓN AQUÍ ---
-    # Construimos un diccionario con los datos del curso y la lista de módulos ya procesada
+    course_data = CourseDetail.model_validate(db_course)
+    course_data.modules = modules_with_status
+
+    return course_data
+
+
+    # --- CORRECCIÓN ---
     course_detail_data = {
         "id": db_course.id,
         "title": db_course.title,
         "description": db_course.description,
         "modules": modules_with_status
     }
-    # La forma más limpia de construir la respuesta
-    course_data = CourseDetail.model_validate(db_course)
-    course_data.modules = modules_with_status  # Asigna la lista de módulos procesada
-
-    return course_data
+    return CourseDetail(**course_detail_data)
 
 
 @router.get("/{course_id}/summary", response_model=str)
@@ -91,21 +99,29 @@ async def get_course_summary(
 
 @router.post("/", response_model=Course, status_code=status.HTTP_201_CREATED)
 def create_course(
-    course: CourseCreate,
-    db: Session = Depends(get_db),
-    current_user: UserSchema = Depends(get_current_active_user)
+        course: CourseCreate,
+        db: Session = Depends(get_db),
+        current_user: UserSchema = Depends(get_current_active_user)
 ):
-    """Crea un nuevo curso. Los estudiantes tienen un límite."""
+    """
+    Crea un nuevo curso con límites para el plan gratuito.
+    """
     if current_user.role.name == 'student':
-        if course_repo.count_courses_created_by_user(db, user_id=current_user.id) >= 2:
-            raise HTTPException(status_code=403, detail="Límite de creación alcanzado.")
-        # Llama a una función específica para estudiantes
-        return course_repo.create_student_course(db, course=course, creator_id=current_user.id)
-    else:
-        # Llama a la función para instructores/admins
-        return course_repo.create_instructor_course(db, course=course, instructor_id=current_user.id)
+        # Los estudiantes no pueden crear cursos en el plan gratuito.
+        raise HTTPException(status_code=403, detail="Los estudiantes no pueden crear cursos en el plan gratuito.")
 
+    if current_user.role.name == 'instructor':
+        # --- LÓGICA CORREGIDA ---
+        # Usa una función de conteo específica para instructores
+        course_count = course_repo.count_courses_by_instructor(db, instructor_id=current_user.id)
+        if course_count >= 1:
+            raise HTTPException(
+                status_code=403,
+                detail="Has alcanzado el límite de 1 curso para el plan gratuito de instructor."
+            )
 
+    # Si pasa las validaciones, crea el curso
+    return course_repo.create_instructor_course(db, course=course, instructor_id=current_user.id)
 @router.put("/{course_id}", response_model=Course)
 async def update_course(
         course_id: int,

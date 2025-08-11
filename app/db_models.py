@@ -1,6 +1,6 @@
 # backend/app/db_models.py
 
-from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, TIMESTAMP, Boolean, Float, Date
+from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, TIMESTAMP, Boolean, Float, Date, DECIMAL
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -89,6 +89,10 @@ class Course(Base):
     status = Column(Enum('published', 'draft'), nullable=False, server_default='published')
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     visibility = Column(Enum('public', 'private'), nullable=False, server_default='private')
+    price = Column(DECIMAL(10, 2), default=0.00)  # Asegúrate que también esté aquí
+
+    # --- COLUMNA AÑADIDA ---
+    is_free = Column(Boolean, nullable=False, default=True)
 
     instructor = relationship("User", back_populates="courses_taught", foreign_keys=[instructor_id])
     creator = relationship("User", back_populates="courses_created", foreign_keys=[creator_id])
@@ -201,5 +205,16 @@ class Notification(Base):
     is_read = Column(Boolean, default=False, nullable=False)
     link_url = Column(String(255), nullable=True)
     created_at = Column(TIMESTAMP, server_default='CURRENT_TIMESTAMP')
+
+    user = relationship("User")
+
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    plan_name = Column(String(100), nullable=False)
+    start_date = Column(TIMESTAMP, server_default='CURRENT_TIMESTAMP')
+    end_date = Column(TIMESTAMP, nullable=True)
 
     user = relationship("User")

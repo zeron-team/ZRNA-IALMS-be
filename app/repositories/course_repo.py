@@ -11,8 +11,16 @@ def get_all_courses(db: Session):
     ).all()
 
 def get_published_courses(db: Session):
-    """Obtiene solo los cursos con estado 'published'."""
-    return db.query(db_models.Course).filter(
+    """
+    Obtiene todos los cursos publicados, cargando su categoría de forma segura.
+    """
+
+    # --- CONSULTA CORREGIDA ---
+    # Usamos outerjoin para asegurarnos de que la consulta no falle
+    # si un curso no tiene una categoría (category_id es NULL).
+    return db.query(db_models.Course).outerjoin(
+        db_models.Category
+    ).filter(
         db_models.Course.status == 'published'
     ).options(
         joinedload(db_models.Course.category)
@@ -47,12 +55,20 @@ def count_courses_created_by_user(db: Session, user_id: int) -> int:
     """Cuenta los cursos creados por un estudiante."""
     return db.query(db_models.Course).filter(db_models.Course.creator_id == user_id).count()
 
+
 def create_instructor_course(db: Session, course: course_schemas.CourseCreate, instructor_id: int):
-    """Crea un curso asignado a un instructor."""
+    # Lógica para manejar el precio
+    price = course.price if not course.is_free else 0.0
+
     db_course = db_models.Course(
-        title=course.title, description=course.description,
-        instructor_id=instructor_id, category_id=course.category_id,
-        level=course.level, status='published'
+        title=course.title,
+        description=course.description,
+        instructor_id=instructor_id,
+        category_id=course.category_id,
+        level=course.level,
+        is_free=course.is_free,  # <-- Nuevo campo
+        price=price,  # <-- Precio ajustado
+        status='published'
     )
     db.add(db_course)
     db.commit()
@@ -62,9 +78,15 @@ def create_instructor_course(db: Session, course: course_schemas.CourseCreate, i
 def create_student_course(db: Session, course: course_schemas.CourseCreate, creator_id: int):
     """Crea un curso asignado a un estudiante como creador."""
     db_course = db_models.Course(
-        title=course.title, description=course.description,
-        creator_id=creator_id, category_id=course.category_id,
-        level=course.level, status='draft', visibility='private'
+        title=course.title,
+        description=course.description,
+        creator_id=creator_id,
+        category_id=course.category_id,
+        level=course.level,
+        status='draft',
+        visibility='private',
+        is_free=True, # Por defecto, los cursos de estudiantes son gratis
+        price=0.0
     )
     db.add(db_course)
     db.commit()
@@ -119,3 +141,7 @@ def get_published_courses(db: Session):
     ).options(
         joinedload(db_models.Course.category)
     ).all()
+
+def count_courses_by_instructor(db: Session, instructor_id: int) -> int:
+    """Cuenta la cantidad de cursos creados por un instructor."""
+    return db.query(db_models.Course).filter(db_models.Course.instructor_id == instructor_id).count()

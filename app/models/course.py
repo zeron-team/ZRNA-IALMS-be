@@ -17,8 +17,11 @@ class Category(BaseModel):
     id: int
     name: str
     courses: List[CourseBaseForCategory] = []
+
+
     class Config:
         from_attributes = True
+
 
 
 # --- MODULE ---
@@ -45,6 +48,9 @@ class Course(BaseModel):
     total_stars: int = 0
     earned_stars: int = 0
     creator_id: Optional[int] = None  # <-- Permite que sea nulo
+    is_free: Optional[bool] = True
+    price: Optional[float] = 0.0
+
     class Config:
         from_attributes = True
 
@@ -65,4 +71,6 @@ class CourseCreate(BaseModel):
     description: Optional[str] = None
     category_id: int
     level: str
+    is_free: Optional[bool] = True
+    price: Optional[float] = 0.0
 

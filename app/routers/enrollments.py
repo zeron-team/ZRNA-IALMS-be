@@ -18,14 +18,23 @@ router = APIRouter(
 
 @router.post("/courses/{course_id}/enroll", status_code=status.HTTP_201_CREATED)
 def enroll_in_course(
-    course_id: int, db: Session = Depends(get_db),
-    current_user: UserSchema = Depends(get_current_active_user)
+        course_id: int,
+        db: Session = Depends(get_db),
+        current_user: UserSchema = Depends(get_current_active_user)
 ):
+    course = course_repo.get_course_by_id(db, course_id=course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Curso no encontrado.")
+
+    # Aquí puedes añadir la lógica de planes de pago si lo necesitas
+    # if user_plan == "Gratuito" and course.price > 0:
+    #     raise HTTPException(status_code=403, detail="Tu plan no permite acceso a este curso.")
+
     if enrollment_repo.is_enrolled(db, user_id=current_user.id, course_id=course_id):
         raise HTTPException(status_code=400, detail="Ya estás inscrito en este curso.")
+
     enrollment_repo.create_enrollment(db, user_id=current_user.id, course_id=course_id)
     return {"message": "Inscripción exitosa."}
-
 
 @router.get("/my-courses", response_model=List[CourseWithProgress])
 def get_my_enrolled_courses(

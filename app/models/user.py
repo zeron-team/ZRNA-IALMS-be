@@ -20,7 +20,7 @@ class UserCreate(BaseModel):
     username: str
     email: str
     password: str
-    role: str = 'student'
+    role_name: str
 
 # --- Modelo para la Base de Datos ---
 # Este modelo hereda de User y añade el campo `hashed_password`.
@@ -70,7 +70,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    role_id: int = 1
+    role_name: str
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None

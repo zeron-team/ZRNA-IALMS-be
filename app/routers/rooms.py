@@ -1,6 +1,6 @@
 # backend/app/routers/rooms.py
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException,  status
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from app.dependencies import get_db
@@ -13,16 +13,24 @@ from app.repositories import notification_repo
 
 router = APIRouter(prefix="/rooms", tags=["Rooms"])
 
-@router.post("/", response_model=Room, dependencies=[Depends(instructor_required)])
+@router.post("/", response_model=Room)
 def create_new_room(
     room: RoomCreate,
     db: Session = Depends(get_db),
-    current_user: UserSchema = Depends(instructor_required)
+    current_user: UserSchema = Depends(instructor_required) # Solo instructores pueden crear
 ):
+    """
+    Crea una nueva sala con límites para el plan gratuito.
+    """
+    room_count = room_repo.count_rooms_by_instructor(db, instructor_id=current_user.id)
+
+    # --- LÓGICA DE LÍMITES AÑADIDA ---
+    if room_count >= 1:
+        raise HTTPException(status_code=403, detail="Has alcanzado el límite de 1 sala para el plan gratuito de instructor.")
+
     return room_repo.create_room(
         db, name=room.name, description=room.description, instructor_id=current_user.id
     )
-
 
 @router.get("/", response_model=List[Room])
 def get_my_rooms(
@@ -56,19 +64,21 @@ def get_room_details(
 
     return db_room
 
-@router.post("/{room_id}/courses/{course_id}", response_model=Room)
+@router.post("/{room_id}/courses/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
 def add_course_to_room_endpoint(
-    room_id: int,
-    course_id: int,
-    db: Session = Depends(get_db),
-    current_user: UserSchema = Depends(instructor_required)
+        room_id: int,
+        course_id: int,
+        db: Session = Depends(get_db),
+        current_user: UserSchema = Depends(instructor_required)
 ):
-    updated_room = room_repo.add_course_to_room(
+    """Asocia un curso existente a una sala."""
+    success = room_repo.add_course_to_room(
         db, room_id=room_id, course_id=course_id, instructor_id=current_user.id
     )
-    if not updated_room:
+    if not success:
         raise HTTPException(status_code=404, detail="Sala no encontrada o no tienes permiso.")
-    return
+
+    return None  # No se devuelve contenido, solo el código 204
 
 @router.post("/{room_id}/members/{user_id}", response_model=Room)
 def add_member_to_room_endpoint(
@@ -87,4 +97,45 @@ def add_member_to_room_endpoint(
     link = f"/rooms/{room_id}"
     notification_repo.create_notification(db, user_id=user_id, message=message, link_url=link)
 
+    return updated_room
+
+
+@router.delete("/{room_id}/courses/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_course_from_room_endpoint(
+    room_id: int, course_id: int, db: Session = Depends(get_db),
+    current_user: UserSchema = Depends(instructor_required)
+):
+    success = room_repo.remove_course_from_room(db, room_id, course_id, current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Asociación no encontrada o no tienes permiso.")
+    return
+
+@router.delete("/{room_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_member_from_room_endpoint(
+    room_id: int, user_id: int, db: Session = Depends(get_db),
+    current_user: UserSchema = Depends(instructor_required)
+):
+    success = room_repo.remove_member_from_room(db, room_id, user_id, current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Miembro no encontrado o no tienes permiso.")
+    return
+
+
+@router.put("/{room_id}", response_model=Room)
+def update_existing_room(
+    room_id: int,
+    room_update: RoomCreate, # Reutilizamos el schema de creación
+    db: Session = Depends(get_db),
+    current_user: UserSchema = Depends(instructor_required)
+):
+    """Actualiza una sala existente."""
+    updated_room = room_repo.update_room(
+        db,
+        room_id=room_id,
+        name=room_update.name,
+        description=room_update.description,
+        instructor_id=current_user.id
+    )
+    if not updated_room:
+        raise HTTPException(status_code=404, detail="Sala no encontrada o no tienes permiso.")
     return updated_room

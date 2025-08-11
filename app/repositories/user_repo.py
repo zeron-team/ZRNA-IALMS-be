@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 from app import db_models
 from app.models import user as user_schemas
 from app.core.hashing import get_password_hash
+from app.repositories import role_repo, subscription_repo
 import secrets
 
 
@@ -24,6 +25,12 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 
 
 def create_user(db: Session, user: user_schemas.UserCreate):
+    # Busca el rol por nombre
+    role = role_repo.get_role_by_name(db, name=user.role_name)
+    if not role:
+        # Si el rol no existe, por defecto se asigna 'student'
+        role = role_repo.get_role_by_name(db, name='student')
+
     hashed_password = get_password_hash(user.password)
     verification_token = secrets.token_urlsafe(32)
 
@@ -31,16 +38,19 @@ def create_user(db: Session, user: user_schemas.UserCreate):
         username=user.username,
         email=user.email,
         hashed_password=hashed_password,
-        role_id=user.role_id,
+        role_id=role.id,  # <-- Usa el ID del rol encontrado
         verification_token=verification_token,
-        is_active=False  # El usuario se crea como inactivo
+        is_active=False
     )
     db_user.profile = db_models.UserProfile()
     db.add(db_user)
+    db.flush()
+
+    subscription_repo.create_default_subscription(db, user_id=db_user.id, role_name=user.role_name)
+
     db.commit()
     db.refresh(db_user)
     return db_user
-
 
 def activate_user_by_token(db: Session, token: str):
     user = db.query(db_models.User).filter(db_models.User.verification_token == token).first()

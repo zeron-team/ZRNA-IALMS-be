@@ -11,12 +11,10 @@ from app.config import GOOGLE_API_KEY
 # Configura la API key de forma segura al iniciar el servicio
 try:
     genai.configure(api_key=GOOGLE_API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
-    print(f"Error al configurar la API de Google: {e}")
-    # En una app real, podrías querer manejar esto de forma más robusta
-
-# Inicializa el modelo de IA que se va a utilizar
-model = genai.GenerativeModel('gemini-1.5-flash')
+    print(f"Error fatal al configurar la API de Google: {e}")
+    model = None
 
 
 def generate_student_alert(student_name: str, course_title: str, progress_percentage: int) -> str:
@@ -67,29 +65,40 @@ def get_course_recommendations(db: Session, enrolled_titles: List[str]) -> List[
     # ... (código de la función)
     pass
 
+def generate_curriculum_from_ai(course_title: str, course_description: str) -> dict:
+    if not model: return {"modules": []}
+    prompt = f"""
+    Actúa como un diseñador instruccional experto. Basado en el título y descripción de un curso, genera una currícula detallada.
+    Título: "{course_title}"
+    Descripción: "{course_description}"
+    Tu respuesta DEBE ser un objeto JSON válido y nada más. El objeto debe tener una clave "modules" que sea un array de objetos.
+    Cada objeto debe tener las claves: "title" (string), "description" (string), y "order_index" (integer, comenzando en 1).
+    Genera entre 5 y 8 módulos.
+    """
+    try:
+        response = model.generate_content(prompt)
+        cleaned_response = response.text.strip().replace("```json", "").replace("```", "")
+        return json.loads(cleaned_response)
+    except (json.JSONDecodeError, Exception) as e:
+        print(f"Error al generar/parsear currícula de IA: {e}")
+        return {"modules": []}
+
 def generate_quiz_from_ai(module_title: str, module_description: str) -> dict:
     """Usa Gemini para generar un quiz para un módulo en formato JSON."""
+    if not model: return {"questions": []}
     prompt = f"""
-    Actúa como un experto en evaluación educativa. Para un módulo de un curso con el siguiente título y descripción, crea un mini-quiz.
-
-    Título del Módulo: "{module_title}"
-    Descripción del Módulo: "{module_description}"
-
-    Tu respuesta DEBE ser un objeto JSON válido y nada más. El objeto debe tener una clave "questions" que sea un array.
-    Cada objeto en el array debe representar una pregunta y tener estas claves:
-    - "question_text" (string): El texto de la pregunta.
-    - "options" (array of objects): Un array con 4 objetos, cada uno con:
-        - "option_text" (string): El texto de la opción.
-        - "is_correct" (boolean): true para la única opción correcta, false para las otras 3.
-
-    Genera 5 preguntas de opción múltiple.
+    Actúa como un experto en evaluación educativa. Para un módulo con el título "{module_title}" y descripción "{module_description}", crea un mini-quiz.
+    Tu respuesta DEBE ser un objeto JSON válido y nada más, con una clave "questions" que sea un array.
+    Cada pregunta debe tener "question_text" y un array "options" con 4 objetos.
+    Cada opción debe tener "option_text" y "is_correct" (boolean, solo una true).
+    Genera 5 preguntas.
     """
     try:
         response = model.generate_content(prompt)
         cleaned_response = response.text.strip().replace("```json", "").replace("```", "")
         return json.loads(cleaned_response)
     except Exception as e:
-        print(f"Error al generar el quiz de la IA: {e}")
+        print(f"Error al generar quiz de IA: {e}")
         return {"questions": []}
 
 def generate_module_content_from_ai(module_title: str, module_description: str) -> str:
