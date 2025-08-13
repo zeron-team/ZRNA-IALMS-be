@@ -43,6 +43,7 @@ class User(Base):
     courses_created = relationship("Course", back_populates="creator", foreign_keys="[Course.creator_id]")
     enrollments = relationship("CourseEnrollment", back_populates="user", cascade="all, delete-orphan")
     progress = relationship("StudentProgress", back_populates="user", cascade="all, delete-orphan")
+    last_login = Column(TIMESTAMP, nullable=True)
 
     @property
     def enrolled_courses(self):

@@ -22,24 +22,22 @@ class RegisterResponse(BaseModel):
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
-        form_data: OAuth2PasswordRequestForm = Depends(),
-        db: Session = Depends(get_db)
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
 ):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario o contraseña incorrectos",
+            detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    # --- VERIFICACIÓN DE CUENTA ACTIVA ---
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tu cuenta no ha sido verificada. Por favor, revisa tu correo."
+            detail="Inactive user",
         )
-
+    user_repo.update_user_last_login(db, user_id=user.id)
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 

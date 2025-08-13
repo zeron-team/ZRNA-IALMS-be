@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 
 
 
@@ -12,9 +12,11 @@ class User(BaseModel):
     username: str
     email: Optional[str] = None
     role: str
+    last_login: Optional[datetime] = None
 
     class Config:
         from_attributes = True # En Pydantic v1 era orm_mode = True
+
 
 class UserCreate(BaseModel):
     username: str
@@ -81,5 +83,6 @@ class User(UserBase):
     id: int
     role: Role
     profile: Optional[UserProfile] = None
+    last_login: Optional[datetime] = None
     class Config:
         from_attributes = True

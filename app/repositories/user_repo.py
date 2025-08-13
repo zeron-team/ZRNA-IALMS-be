@@ -1,5 +1,6 @@
 # backend/app/repositories/user_repo.py
 
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session, joinedload
 from app import db_models
 from app.models import user as user_schemas
@@ -97,3 +98,16 @@ def delete_user(db: Session, user_id: int) -> bool:
 def get_user_by_email(db: Session, email: str):
     """Busca un usuario por su dirección de email."""
     return db.query(db_models.User).filter(db_models.User.email == email).first()
+
+
+def update_user_last_login(db: Session, user_id: int):
+    """Actualiza la fecha del último inicio de sesión de un usuario en UTC-3."""
+
+    # Define la zona horaria UTC-3
+    utc_minus_3 = timezone(timedelta(hours=-3))
+
+    db_user = db.query(db_models.User).filter(db_models.User.id == user_id).first()
+    if db_user:
+        # Guarda la fecha y hora actual en la zona horaria definida
+        db_user.last_login = datetime.now(utc_minus_3)
+        db.commit()
