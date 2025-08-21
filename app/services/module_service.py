@@ -4,12 +4,13 @@ from sqlalchemy.orm import Session
 from app.repositories import module_repo, quiz_repo
 from app.services import ai_service
 from app import db_models
+from typing import Optional
 
 class ModuleService:
     def __init__(self, db: Session):
         self.db = db
 
-    async def generate_and_save_content(self, module_id: int) -> db_models.Module | None:
+    async def generate_and_save_content(self, module_id: int) -> Optional[db_models.Module]:
         """
         Orquesta la generación de contenido y el quiz para un módulo.
         """
@@ -34,5 +35,9 @@ class ModuleService:
         quiz_data = ai_service.generate_quiz_from_ai(module.title, module.description)
         if quiz_data and quiz_data.get("questions"):
             quiz_repo.create_quiz_for_module(self.db, module_id, quiz_data["questions"])
+            print(f"-> Quiz para '{module.title}' creado con éxito.")
+        else:
+            print(f"-> !!! No se pudo generar quiz para '{module.title}'.")
+
 
         return updated_module

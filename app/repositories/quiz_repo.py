@@ -3,6 +3,7 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from app import db_models
+from typing import Optional
 
 
 def create_quiz_for_module(db: Session, module_id: int, questions_data: list):
@@ -57,7 +58,7 @@ def create_quiz_attempt(db: Session, user_id: int, module_id: int, score: float,
     db.commit()
 
 
-def get_average_quiz_score(db: Session, user_id: int, course_id: int) -> float | None:
+def get_average_quiz_score(db: Session, user_id: int, course_id: int) -> Optional[float]:
     """
     Calcula el puntaje promedio de los quizzes de un usuario para un curso específico.
     """

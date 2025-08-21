@@ -6,11 +6,9 @@ from typing import Optional
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-
 from app.core.hashing import verify_password
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
 from app.dependencies import get_db
-# --- LÍNEA AÑADIDA ---
 from app.repositories import user_repo, course_repo, module_repo
 from app.models.user import User as PydanticUser
 
@@ -19,7 +17,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 # --- Funciones de Token JWT ---
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
