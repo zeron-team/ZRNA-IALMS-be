@@ -11,7 +11,7 @@ from app.models.user import User as PydanticUser
 # --- Dependencias, Repositorios y Servicios ---
 from app.dependencies import get_db, get_course_service
 from app.services.course_service import CourseService
-from app.security import instructor_required, get_current_active_user, can_edit_course
+from app.security import instructor_required, get_current_active_user, can_edit_course, is_course_creator
 from app.repositories import course_repo, progress_repo
 
 from app.logic import course_logic
@@ -153,7 +153,7 @@ async def generate_course_curriculum(
     # 1. Parámetros sin valor por defecto (vienen de la ruta)
     course_id: int,
     # 2. Parámetros con valor por defecto (vienen de la inyección de dependencias)
-    current_user: UserSchema = Depends(can_edit_course),
+    current_user: UserSchema = Depends(is_course_creator),
     service: CourseService = Depends(get_course_service)
 ):
     """

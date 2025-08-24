@@ -1,6 +1,9 @@
 # backend/app/repositories/reporting_repo.py
 
 from sqlalchemy.orm import Session, joinedload
+from app.repositories import enrollment_repo, progress_repo
+from app.logic import course_logic
+from app.models.course import CourseWithProgress
 from app import db_models
 
 def get_dashboard_stats(db: Session):
@@ -35,8 +38,35 @@ def get_student_progress_for_instructor_courses(db: Session, instructor_id: int)
     return []
 def get_enrolled_courses_with_progress(db: Session, user_id: int):
     """Obtiene los cursos en los que un usuario está inscrito y su progreso."""
-    # Placeholder
-    return []
+    enrolled_courses = enrollment_repo.get_enrolled_courses(db, user_id=user_id)
+
+    courses_with_data = []
+    for course in enrolled_courses:
+        total_modules = len(course.modules)
+        completed_modules = progress_repo.get_completed_modules_count(db, user_id, course.id)
+        percentage = round((completed_modules / total_modules) * 100) if total_modules > 0 else 0
+
+        total, earned = course_logic.calculate_star_rating(db, course, user_id)
+
+        course_data_dict = {
+            "id": course.id,
+            "title": course.title,
+            "description": course.description,
+            "instructor_id": course.instructor_id,
+            "level": course.level,
+            "category": course.category,
+            "total_stars": total,
+            "earned_stars": earned,
+            "completion_percentage": percentage,
+            "creator_id": course.creator_id,
+            "is_free": course.is_free,
+            "price": course.price
+        }
+
+        course_data = CourseWithProgress(**course_data_dict)
+        courses_with_data.append(course_data)
+
+    return courses_with_data
 
 def get_all_student_progress_summary(db: Session, instructor_id: int):
     """
