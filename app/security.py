@@ -139,13 +139,16 @@ async def is_course_creator(
     db: Session = Depends(get_db),
     current_user: PydanticUser = Depends(get_current_active_user)
 ):
-    """Verifica si el usuario actual es el creador de un curso."""
+    """Verifica si el usuario actual es el creador de un curso o si es admin."""
     course = course_repo.get_course_by_id(db, course_id)
     if not course:
         raise HTTPException(status_code=404, detail="Curso no encontrado")
 
-    if course.creator_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Solo el creador del curso puede realizar esta acción.")
+    is_creator = course.creator_id == current_user.id
+    is_admin = current_user.role.name == "admin"
+
+    if not is_creator and not is_admin:
+        raise HTTPException(status_code=403, detail="Solo el creador del curso o un administrador puede realizar esta acción.")
     return current_user
 
 async def is_module_course_creator(
@@ -153,12 +156,15 @@ async def is_module_course_creator(
     db: Session = Depends(get_db),
     current_user: PydanticUser = Depends(get_current_active_user)
 ):
-    """Verifica si el usuario actual es el creador del curso al que pertenece el módulo."""
+    """Verifica si el usuario actual es el creador del curso al que pertenece el módulo o si es admin."""
     module = module_repo.get_module_by_id(db, module_id)
     if not module:
         raise HTTPException(status_code=404, detail="Módulo no encontrado")
 
     course = module.course
-    if course.creator_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Solo el creador del curso puede realizar esta acción.")
+    is_creator = course.creator_id == current_user.id
+    is_admin = current_user.role.name == "admin"
+
+    if not is_creator and not is_admin:
+        raise HTTPException(status_code=403, detail="Solo el creador del curso o un administrador puede realizar esta acción.")
     return current_user

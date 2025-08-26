@@ -1,6 +1,6 @@
 # backend/app/db_models.py
 
-from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, TIMESTAMP, Boolean, Float, Date, DECIMAL
+from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, TIMESTAMP, Boolean, Float, Date, DECIMAL, func
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -219,3 +219,19 @@ class Subscription(Base):
     end_date = Column(TIMESTAMP, nullable=True)
 
     user = relationship("User")
+
+
+class CourseSuggestion(Base):
+    __tablename__ = "course_suggestions"
+    id = Column(Integer, primary_key=True, index=True)
+    topic = Column(String(255), nullable=False, unique=True)
+    votes = Column(Integer, default=0, nullable=False)
+    status = Column(Enum('pending', 'approved', 'rejected', 'course_created'), default='pending', nullable=False)
+    created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
+    merged_from = Column(Text, nullable=True)
+
+    # Optional: Link to the user who suggested it
+    # user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # user = relationship("User")
+
+
