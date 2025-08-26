@@ -41,6 +41,7 @@ def generate_curriculum_from_ai(course_title: str, course_description: str) -> d
     """
     Usa Gemini para generar una currícula de curso en formato JSON.
     """
+    if not model: return {"modules": []}
     prompt = f"""
     Actúa como un diseñador instruccional experto. Basado en el título y descripción de un curso, genera una currícula detallada.
     Título: "{course_title}"
@@ -48,7 +49,7 @@ def generate_curriculum_from_ai(course_title: str, course_description: str) -> d
 
     Tu respuesta DEBE ser un objeto JSON válido y nada más, sin texto introductorio ni explicaciones adicionales. El objeto debe tener una clave "modules" que sea un array de objetos.
     Cada objeto debe tener las claves: "title" (string), "description" (string), y "order_index" (integer, comenzando en 1).
-    Genera entre 5 y 10 módulos.
+    Genera entre 15 y 20 módulos.
     """
 
     try:
@@ -60,28 +61,6 @@ def generate_curriculum_from_ai(course_title: str, course_description: str) -> d
         print(f"Error al generar o parsear la currícula de la IA: {e}")
         return {"modules": []}  # Devuelve una estructura vacía en caso de error
 
-
-def get_course_recommendations(db: Session, enrolled_titles: List[str]) -> List[db_models.Course]:
-    # ... (código de la función)
-    pass
-
-def generate_curriculum_from_ai(course_title: str, course_description: str) -> dict:
-    if not model: return {"modules": []}
-    prompt = f"""
-    Actúa como un diseñador instruccional experto. Basado en el título y descripción de un curso, genera una currícula detallada.
-    Título: "{course_title}"
-    Descripción: "{course_description}"
-    Tu respuesta DEBE ser un objeto JSON válido y nada más. El objeto debe tener una clave "modules" que sea un array de objetos.
-    Cada objeto debe tener las claves: "title" (string), "description" (string), y "order_index" (integer, comenzando en 1).
-    Genera entre 5 y 8 módulos.
-    """
-    try:
-        response = model.generate_content(prompt)
-        cleaned_response = response.text.strip().replace("```json", "").replace("```", "")
-        return json.loads(cleaned_response)
-    except (json.JSONDecodeError, Exception) as e:
-        print(f"Error al generar/parsear currícula de IA: {e}")
-        return {"modules": []}
 
 def generate_quiz_from_ai(module_title: str, module_description: str) -> dict:
     """Usa Gemini para generar un quiz para un módulo en formato JSON."""
@@ -100,6 +79,7 @@ def generate_quiz_from_ai(module_title: str, module_description: str) -> dict:
     except Exception as e:
         print(f"Error al generar quiz de IA: {e}")
         return {"questions": []}
+
 
 def generate_module_content_from_ai(module_title: str, module_description: str) -> str:
     """Usa Gemini para generar el contenido de una lección en formato Markdown."""
@@ -125,6 +105,7 @@ def generate_module_content_from_ai(module_title: str, module_description: str) 
         print(f"Error al generar el contenido del módulo: {e}")
         return "Error al generar contenido."
 
+
 def generate_course_summary_from_ai(title: str, description: str) -> str:
     """Genera un resumen de objetivos del curso en formato Markdown."""
     prompt = f"""
@@ -135,7 +116,7 @@ def generate_course_summary_from_ai(title: str, description: str) -> str:
 
     Tu respuesta DEBE ser texto en formato Markdown. Estructura el resumen así:
     - Un encabezado "### ¿Qué aprenderás en este curso?".
-    - Una lista con viñetas de 5 a 10 objetivos de aprendizaje clave que el alumno logrará.
+    - Una lista con viñetas de 7 a 10 objetivos de aprendizaje clave que el alumno logrará.
     - Un encabezado "### ¿A quién está dirigido?".
     - Un párrafo corto describiendo el perfil del estudiante ideal.
     """
@@ -227,5 +208,3 @@ def generate_motivational_phrase(score: int, passed: bool) -> str:
         return response.text.strip()
     except Exception:
         return "¡Sigue esforzándote!"
-
-
