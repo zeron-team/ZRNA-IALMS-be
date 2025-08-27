@@ -20,7 +20,7 @@ class LearningPathCourse(Base):
     path_id = Column(Integer, ForeignKey('learning_paths.id'), primary_key=True)
     course_id = Column(Integer, ForeignKey('courses.id'), primary_key=True)
     step = Column(Integer, nullable=False)
-    path = relationship("LearningPath", back_populates="courses")
+    path = relationship("LearningPath", back_populates="courses") # Corrected line
     course = relationship("Course")
 
 
@@ -37,7 +37,7 @@ class User(Base):
     verification_token = Column(String(255), unique=True, index=True, nullable=True)
 
     # --- RELACIONES CORREGIDAS ---
-    role = relationship("Role", back_populates="users")
+    role = relationship("Role", back_populates="users_rel") # Corrected back_populates name
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     courses_taught = relationship("Course", back_populates="instructor", foreign_keys="[Course.instructor_id]")
     courses_created = relationship("Course", back_populates="creator", foreign_keys="[Course.creator_id]")
@@ -54,7 +54,7 @@ class Role(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(50), unique=True, nullable=False)
     description = Column(Text, nullable=True)
-    users = relationship("User", back_populates="role")  # <-- Relación añadida
+    users_rel = relationship("User", back_populates="role")  # Renamed to avoid conflict
 
 
 class UserProfile(Base):
@@ -117,6 +117,7 @@ class Module(Base):
     order_index = Column(Integer, nullable=False)
     content_data = Column(Text, nullable=True)
     has_example = Column(Boolean, nullable=False, default=False)
+    diagram_mermaid_syntax = Column(Text, nullable=True) # Added this line
     context = Column(Enum('education', 'health', 'constructor', 'developer_software', 'more', name='module_context_enum'), nullable=True)
     skill_type = Column(Enum('jr', 'semi_sr', 'sr', name='module_skill_type_enum'), nullable=True)
 

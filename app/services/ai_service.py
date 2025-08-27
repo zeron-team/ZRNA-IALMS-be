@@ -62,7 +62,7 @@ def generate_curriculum_from_ai(course_title: str, course_description: str) -> d
     Ejemplo de Mermaid:
     graph TD;
         A[Inicio] --> B(Paso 1);
-        B --> C{Decisión};
+        B --> C{{Decisión}};
         C -- Sí --> D[Fin];
         C -- No --> B;
     """
