@@ -39,9 +39,7 @@ def submit_quiz(
         db: Session = Depends(get_db),
         current_user: UserSchema = Depends(get_current_active_user)
 ):
-    attempts_count = quiz_repo.count_quiz_attempts(db, user_id=current_user.id, module_id=module_id)
-    if attempts_count >= 3:
-        raise HTTPException(status_code=403, detail="Has excedido el número máximo de intentos.")
+    # Restriction removed: No limit on quiz attempts
 
     correct_answers = quiz_repo.get_correct_answers_for_module(db, module_id)
     score_count = 0
@@ -58,7 +56,7 @@ def submit_quiz(
 
     total_questions = len(correct_answers)
     final_score = round((score_count / total_questions) * 100) if total_questions > 0 else 0
-    passed = final_score >= 70
+    passed = final_score >= 55
 
     quiz_repo.create_quiz_attempt(db, user_id=current_user.id, module_id=module_id, score=final_score, passed=passed)
 
@@ -72,14 +70,18 @@ def submit_quiz(
     course = course_repo.get_course_by_id(db, module.course_id)
     total_stars, earned_stars = course_logic.calculate_star_rating(db, course, current_user.id)
 
+    incorrect_count = total_questions - score_count
     return {
         "score": final_score,
         "passed": passed,
+        "total_questions": total_questions,
+        "correct_count": score_count,
+        "incorrect_count": incorrect_count,
         "detailed_results": detailed_results,
         "motivational_phrase": motivational_phrase,
         "course_total_stars": total_stars,
         "course_earned_stars": earned_stars,
-        "attempts_remaining": 2 - attempts_count
+        
     }
 
 @router.get("/module/{module_id}/status", response_model=QuizStatus)
@@ -90,7 +92,7 @@ def get_quiz_status(
 ):
     """Verifica si el usuario puede intentar el quiz y cuántos intentos ha hecho."""
     attempts_count = quiz_repo.count_quiz_attempts(db, user_id=current_user.id, module_id=module_id)
-    can_attempt = attempts_count < 3
+    can_attempt = True # Removed attempt limit
     return {
         "can_attempt": can_attempt,
         "attempts_made": attempts_count

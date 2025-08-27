@@ -100,7 +100,11 @@ def add_modules_to_course(db: Session, course_id: int, modules: list):
             course_id=course_id,
             title=module_data.get('title'),
             description=module_data.get('description'),
-            order_index=module_data.get('order_index')
+            order_index=module_data.get('order_index'),
+            has_example=module_data.get('has_example', False),
+            context=module_data.get('context'),
+            skill_type=module_data.get('skill_type'),
+            diagram_mermaid_syntax=module_data.get('diagram_mermaid_syntax')
         )
         db.add(db_module)
     db.commit()

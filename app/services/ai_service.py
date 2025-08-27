@@ -39,7 +39,7 @@ def generate_student_alert(student_name: str, course_title: str, progress_percen
 
 def generate_curriculum_from_ai(course_title: str, course_description: str) -> dict:
     """
-    Usa Gemini para generar una currícula de curso en formato JSON.
+    Usa Gemini para generar una currícula de curso en formato JSON, incluyendo diagramas Mermaid.
     """
     if not model: return {"modules": []}
     prompt = f"""
@@ -48,8 +48,23 @@ def generate_curriculum_from_ai(course_title: str, course_description: str) -> d
     Descripción: "{course_description}"
 
     Tu respuesta DEBE ser un objeto JSON válido y nada más, sin texto introductorio ni explicaciones adicionales. El objeto debe tener una clave "modules" que sea un array de objetos.
-    Cada objeto debe tener las claves: "title" (string), "description" (string), y "order_index" (integer, comenzando en 1).
+    Cada objeto debe tener las claves:
+    - "title" (string): Título del módulo.
+    - "description" (string): Descripción detallada del módulo.
+    - "order_index" (integer): Orden del módulo, comenzando en 1.
+    - "has_example" (boolean): True si el módulo debe incluir un ejemplo práctico, False en caso contrario.
+    - "context" (string, opcional): El contexto principal del módulo. Valores permitidos: "education", "health", "constructor", "developer_software", "more".
+    - "skill_type" (string, opcional): El nivel de habilidad al que apunta el módulo. Valores permitidos: "jr", "semi_sr", "sr".
+    - "diagram_mermaid_syntax" (string, opcional): Código Mermaid.js que representa visualmente el flujo o los conceptos clave del módulo. Si no es aplicable, puede ser una cadena vacía o no incluir la clave.
+
     Genera entre 15 y 20 módulos.
+    Asegúrate de que el código Mermaid sea válido y represente un diagrama de flujo simple o un gráfico de conceptos para cada módulo.
+    Ejemplo de Mermaid:
+    graph TD;
+        A[Inicio] --> B(Paso 1);
+        B --> C{Decisión};
+        C -- Sí --> D[Fin];
+        C -- No --> B;
     """
 
     try:

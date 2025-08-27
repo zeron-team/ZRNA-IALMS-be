@@ -5,7 +5,8 @@ from typing import List
 from sqlalchemy.orm import Session
 
 # --- Modelos Pydantic ---
-from app.models.course import Course, CourseCreate, CourseDetail, Module
+from app.models.course import Course, CourseCreate, CourseDetail
+from app.models.module import ModuleResponse as Module
 from app.models.user import User as PydanticUser
 
 # --- Dependencias, Repositorios y Servicios ---

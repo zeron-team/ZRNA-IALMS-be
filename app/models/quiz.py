@@ -34,6 +34,9 @@ class AnswerResult(BaseModel):
 class QuizResultDetailed(BaseModel): # <-- El modelo que faltaba
     score: float
     passed: bool
+    total_questions: int
+    correct_count: int
+    incorrect_count: int
     detailed_results: List[AnswerResult]
 
 class QuizStatus(BaseModel):

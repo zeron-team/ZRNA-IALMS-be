@@ -1,6 +1,6 @@
 # backend/app/db_models.py
 
-from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, TIMESTAMP, Boolean, Float, Date, DECIMAL, func
+from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, TIMESTAMP, Boolean, Float, Date, DECIMAL, func, DateTime
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -116,6 +116,9 @@ class Module(Base):
     description = Column(Text, nullable=True)
     order_index = Column(Integer, nullable=False)
     content_data = Column(Text, nullable=True)
+    has_example = Column(Boolean, nullable=False, default=False)
+    context = Column(Enum('education', 'health', 'constructor', 'developer_software', 'more', name='module_context_enum'), nullable=True)
+    skill_type = Column(Enum('jr', 'semi_sr', 'sr', name='module_skill_type_enum'), nullable=True)
 
     # Relaciones
     course = relationship("Course", back_populates="modules")
@@ -235,3 +238,17 @@ class CourseSuggestion(Base):
     # user = relationship("User")
 
 
+class Rating(Base):
+    __tablename__ = "ratings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=True)
+    module_id = Column(Integer, ForeignKey("modules.id"), nullable=True)
+    is_upvote = Column(Boolean, nullable=False) # True for thumbs up, False for thumbs down
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    user = relationship("User")
+    course = relationship("Course")
+    module = relationship("Module")

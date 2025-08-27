@@ -9,7 +9,7 @@ from weasyprint import HTML # Import HTML from WeasyPrint
 import io # Import io
 
 # --- Modelos Pydantic ---
-from app.models.course import Module as ModuleSchema
+from app.models.module import ModuleResponse as ModuleSchema
 from app.models.user import User as UserSchema
 
 # --- Dependencias, Repositorios y Servicios ---

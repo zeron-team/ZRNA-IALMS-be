@@ -34,6 +34,7 @@ class Module(BaseModel):
     course_id: int
     content_data: Optional[str] = None
     is_locked: bool = False
+    diagram_mermaid_syntax: Optional[str] = None # New field
     class Config:
         from_attributes = True
 
