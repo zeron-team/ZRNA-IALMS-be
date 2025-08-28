@@ -32,3 +32,22 @@ def update_module_content(db: Session, module_id: int, content: str):
         db.commit()
         db.refresh(db_module)
     return db_module
+
+def update_module_audio(db: Session, module_id: int, audio_path: str):
+    """
+    Encuentra un módulo por su ID y actualiza su campo de audio (content_audio_url).
+
+    Args:
+        db (Session): La sesión de la base de datos.
+        module_id (int): El ID del módulo a actualizar.
+        audio_path (str): La ruta al archivo de audio generado.
+
+    Returns:
+        db_models.Module | None: El objeto del módulo actualizado si se encuentra, de lo contrario None.
+    """
+    db_module = get_module_by_id(db, module_id)
+    if db_module:
+        db_module.content_audio_url = audio_path
+        db.commit()
+        db.refresh(db_module)
+    return db_module

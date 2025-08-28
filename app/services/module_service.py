@@ -41,3 +41,20 @@ class ModuleService:
 
 
         return updated_module
+
+    async def generate_and_save_audio(self, module_id: int) -> Optional[db_models.Module]:
+        """
+        Genera y guarda el audio para un módulo.
+        """
+        module = module_repo.get_module_by_id(self.db, module_id)
+        if not module or not module.content_data:
+            return None
+
+        audio_path = ai_service.generate_audio_from_text(module.content_data, module_id)
+        if audio_path:
+            updated_module = module_repo.update_module_audio(self.db, module_id, audio_path)
+            print(f"-> Audio para '{module.title}' creado con éxito.")
+            return updated_module
+        else:
+            print(f"-> !!! No se pudo generar audio para '{module.title}'.")
+            return None

@@ -90,3 +90,5 @@ websockets==15.0.1
 WeasyPrint==61.2
 Markdown==3.6
 pydyf==0.8.0
+gTTS==2.5.1
+gTTS==2.5.1

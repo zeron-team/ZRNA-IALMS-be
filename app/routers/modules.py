@@ -60,6 +60,18 @@ async def generate_content_for_module(
         raise HTTPException(status_code=500, detail="Failed to generate content")
     return updated_module
 
+@router.post("/{module_id}/generate-audio", response_model=ModuleSchema)
+async def generate_audio_for_module(
+    module_id: int,
+    service: ModuleService = Depends(get_module_service),
+    current_user: UserSchema = Depends(get_current_active_user)
+):
+    """Genera y guarda el audio para un módulo usando IA."""
+    updated_module = await service.generate_and_save_audio(module_id)
+    if not updated_module:
+        raise HTTPException(status_code=500, detail="Failed to generate audio")
+    return updated_module
+
 @router.get("/{module_id}/download-pdf", response_class=StreamingResponse)
 async def download_module_pdf(
     module_id: int,

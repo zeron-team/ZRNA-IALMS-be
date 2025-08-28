@@ -34,6 +34,7 @@ class ModuleResponse(ModuleBase):
     course_id: int
     status: Optional[str] = None  # Add status field
     is_locked: Optional[bool] = None # Add is_locked field
+    content_audio_url: Optional[str] = None
 
     class Config:
         from_attributes = True

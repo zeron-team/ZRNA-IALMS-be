@@ -120,6 +120,7 @@ class Module(Base):
     diagram_mermaid_syntax = Column(Text, nullable=True) # Added this line
     context = Column(Enum('education', 'health', 'constructor', 'developer_software', 'more', name='module_context_enum'), nullable=True)
     skill_type = Column(Enum('jr', 'semi_sr', 'sr', name='module_skill_type_enum'), nullable=True)
+    content_audio_url = Column(String(255), nullable=True)
 
     # Relaciones
     course = relationship("Course", back_populates="modules")

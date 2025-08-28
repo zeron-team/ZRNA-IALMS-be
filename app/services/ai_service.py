@@ -3,10 +3,13 @@
 import google.generativeai as genai
 import json
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app import db_models
 from app.repositories import course_repo
 from app.config import GOOGLE_API_KEY
+from gtts import gTTS
+import os
+import re
 
 # Configura la API key de forma segura al iniciar el servicio
 try:
@@ -15,6 +18,36 @@ try:
 except Exception as e:
     print(f"Error fatal al configurar la API de Google: {e}")
     model = None
+
+def generate_audio_from_text(text: str, module_id: int) -> Optional[str]:
+    """Genera un archivo de audio a partir de texto y lo guarda."""
+    if not text:
+        return None
+
+    try:
+        # Eliminar bloques de código (```...```)
+        processed_text = re.sub(r'```.*?```', '', text, flags=re.DOTALL)
+        # Eliminar otros elementos de Markdown (encabezados, negritas, cursivas, listas)
+        processed_text = re.sub(r'[#*_-]', '', processed_text) # Elimina #, *, _, -
+        processed_text = re.sub(r'\[(.*?)\]\(.*\)', r'\1', processed_text) # Elimina enlaces [texto](url)
+        processed_text = re.sub(r'\n+', ' ', processed_text).strip() # Reemplaza múltiples saltos de línea con un espacio
+
+        # Crea el directorio si no existe
+        output_dir = "static/audio/modules"
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Genera el nombre del archivo
+        file_path = os.path.join(output_dir, f"{module_id}.mp3")
+
+        # Crea el objeto gTTS y guarda el archivo
+        tts = gTTS(text=processed_text, lang='es')
+        tts.save(file_path)
+
+        # Devuelve la ruta del archivo para guardarla en la BD
+        return file_path
+    except Exception as e:
+        print(f"Error al generar el audio: {e}")
+        return None
 
 
 def generate_student_alert(student_name: str, course_title: str, progress_percentage: int) -> str:
