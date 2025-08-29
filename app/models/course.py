@@ -64,6 +64,7 @@ class CourseDetail(BaseModel):
     description: Optional[str] = None
     creator_id: Optional[int] = None  # <-- Añade el creator_id aquí
     modules: List[Module] = []
+    is_enrolled: bool = False
     class Config:
         from_attributes = True
 

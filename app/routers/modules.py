@@ -16,7 +16,7 @@ from app.models.user import User as UserSchema
 from app.dependencies import get_db, get_module_service
 from app.repositories import module_repo, enrollment_repo
 from app.services.module_service import ModuleService
-from app.security import instructor_required, get_current_active_user, can_edit_module, is_module_course_creator
+from app.security import instructor_required, get_current_active_user, can_edit_module, is_enrolled_in_course_from_module
 
 router = APIRouter(
     prefix="/modules",
@@ -52,7 +52,7 @@ async def generate_content_for_module(
     module_id: int,
     service: ModuleService = Depends(get_module_service),
     # Reemplaza 'instructor_required' con la nueva dependencia
-    current_user: UserSchema = Depends(is_module_course_creator)
+    current_user: UserSchema = Depends(is_enrolled_in_course_from_module)
 ):
     """Genera y guarda el contenido detallado para un módulo usando IA."""
     updated_module = await service.generate_and_save_content(module_id)

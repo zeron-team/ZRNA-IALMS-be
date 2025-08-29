@@ -13,7 +13,7 @@ from app.models.user import User as PydanticUser
 from app.dependencies import get_db, get_course_service
 from app.services.course_service import CourseService
 from app.security import instructor_required, get_current_active_user, can_edit_course, is_course_creator
-from app.repositories import course_repo, progress_repo
+from app.repositories import course_repo, progress_repo, enrollment_repo
 
 from app.logic import course_logic
 from app.models.user import User as UserSchema
@@ -44,6 +44,8 @@ def read_course_detail(
     if not db_course:
         raise HTTPException(status_code=404, detail="Curso no encontrado.")
 
+    is_enrolled = enrollment_repo.is_enrolled(db, user_id=current_user.id, course_id=course_id)
+
     user_progress_map = {p.module_id: p.status for p in
                          progress_repo.get_progress_for_course(db, current_user.id, course_id)}
 
@@ -73,18 +75,9 @@ def read_course_detail(
 
     course_data = CourseDetail.model_validate(db_course)
     course_data.modules = modules_with_status
+    course_data.is_enrolled = is_enrolled
 
     return course_data
-
-
-    # --- CORRECCIÓN ---
-    course_detail_data = {
-        "id": db_course.id,
-        "title": db_course.title,
-        "description": db_course.description,
-        "modules": modules_with_status
-    }
-    return CourseDetail(**course_detail_data)
 
 
 @router.get("/{course_id}/summary", response_model=str)

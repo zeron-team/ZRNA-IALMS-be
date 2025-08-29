@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordBearer
 from app.core.hashing import verify_password
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
 from app.dependencies import get_db
-from app.repositories import user_repo, course_repo, module_repo
+from app.repositories import user_repo, course_repo, module_repo, enrollment_repo
 from app.models.user import User as PydanticUser
 
 # --- Configuración ---
@@ -167,4 +167,24 @@ async def is_module_course_creator(
 
     if not is_creator and not is_admin:
         raise HTTPException(status_code=403, detail="Solo el creador del curso o un administrador puede realizar esta acción.")
+    return current_user
+
+async def is_enrolled_in_course_from_module(
+    module_id: int,
+    db: Session = Depends(get_db),
+    current_user: PydanticUser = Depends(get_current_active_user)
+):
+    """Verifica si el usuario actual está inscrito en el curso al que pertenece el módulo."""
+    module = module_repo.get_module_by_id(db, module_id)
+    if not module:
+        raise HTTPException(status_code=404, detail="Módulo no encontrado")
+
+    course = module.course
+    is_enrolled = enrollment_repo.is_enrolled(db, user_id=current_user.id, course_id=course.id)
+    is_creator = course.creator_id == current_user.id
+    is_admin_or_instructor = current_user.role.name in ["admin", "instructor"]
+
+
+    if not is_enrolled and not is_creator and not is_admin_or_instructor:
+        raise HTTPException(status_code=403, detail="Debes estar inscrito en el curso para generar contenido.")
     return current_user
