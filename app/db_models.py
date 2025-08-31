@@ -189,6 +189,7 @@ class Room(Base):
     instructor = relationship("User")
     members = relationship("User", secondary="room_members")
     courses = relationship("Course", secondary="room_courses")
+    scheduled_events = relationship("ScheduledEvent", back_populates="room", cascade="all, delete-orphan")
 
 
 class RoomMember(Base):
@@ -201,6 +202,32 @@ class RoomCourse(Base):
     __tablename__ = "room_courses"
     room_id = Column(Integer, ForeignKey("rooms.id"), primary_key=True)
     course_id = Column(Integer, ForeignKey("courses.id"), primary_key=True)
+
+
+class ScheduledEvent(Base):
+    __tablename__ = "scheduled_events"
+    id = Column(Integer, primary_key=True, index=True)
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String(255), nullable=False)
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=False)
+    event_type = Column(Enum('video_call', 'lecture', 'meeting', name='event_type_enum'), nullable=False, default='video_call')
+
+    room = relationship("Room", back_populates="scheduled_events")
+    creator = relationship("User", foreign_keys=[creator_id])
+    invitations = relationship("EventInvitation", back_populates="event", cascade="all, delete-orphan")
+
+
+class EventInvitation(Base):
+    __tablename__ = "event_invitations"
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("scheduled_events.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status = Column(Enum('pending', 'accepted', 'rejected', name='invitation_status_enum'), nullable=False, default='pending')
+
+    event = relationship("ScheduledEvent", back_populates="invitations")
+    user = relationship("User")
 
 
 class Notification(Base):
